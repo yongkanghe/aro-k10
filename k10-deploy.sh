@@ -43,7 +43,8 @@ helm install k10 kasten/k10 --namespace=kasten-io \
     --set global.persistence.grafana.size=1Gi \
     --set scc.create=true \
     --set route.enabled=true \
-    --set auth.tokenAuth.enabled=true
+    --set auth.tokenAuth.enabled=true \
+    --set global.persistence.storageClass=managed-csi
 
 echo '-------Set the default ns to k10'
 kubectl config set-context --current --namespace kasten-io
@@ -52,7 +53,9 @@ echo '-------Deploying a PostgreSQL database'
 kubectl create namespace yong-postgresql
 oc adm policy add-scc-to-user anyuid -z default -n yong-postgresql
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install --namespace yong-postgresql postgres bitnami/postgresql --set primary.persistence.size=1Gi
+helm install --namespace yong-postgresql postgres bitnami/postgresql \
+  --set primary.persistence.size=1Gi \
+  --set persistence.storageClass=managed-csi
 
 echo '-------Output the Cluster ID'
 clusterid=$(kubectl get namespace default -ojsonpath="{.metadata.uid}{'\n'}")
