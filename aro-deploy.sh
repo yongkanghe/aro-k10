@@ -37,8 +37,8 @@ az aro create \
   --vnet aro-vnet4yong1 \
   --master-subnet master-subnet4yong1 \
   --worker-subnet worker-subnet4yong1 \
-  --pull-secret @pull-secret.txt
   --insecure-skip-tls-verify
+# --pull-secret @pull-secret.txt \
 
 PASSWORD=$(az aro list-credentials --name $MY_CLUSTER --resource-group $MY_GROUP -o tsv --query kubeadminPassword)
 
