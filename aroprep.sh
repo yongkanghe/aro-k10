@@ -1,9 +1,8 @@
 echo "-------Install oc client, create an app registration"
-cd ~
+cd ~/aro-k10
 wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
-mkdir openshift
-tar -zxvf openshift-client-linux.tar.gz -C openshift
-echo 'export PATH=$PATH:~/openshift' >> ~/.bashrc && source ~/.bashrc
+tar -zxvf openshift-client-linux.tar.gz
+echo 'export PATH=$PATH:~/aro-k10' >> ~/.bashrc && source ~/.bashrc
 rm openshift-client-linux.tar.gz
 
 AZURE_SUBSCRIPTION_ID=$(az account list --query "[?isDefault][id]" --all -o tsv)
