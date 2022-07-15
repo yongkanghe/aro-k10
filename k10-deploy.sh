@@ -10,8 +10,8 @@ AZURE_CLIENT_SECRET=$(cat aks4yong1app | grep password | awk '{print $2}' | sed 
 
 echo '-------Create a Azure Storage account'
 ARO_RG=$(az group list -o table | grep rg4yong1 | awk '{print $1}')
-az storage account create -n $MY_PREFIX-$AZURE_STORAGE_ACCOUNT_ID -g $ARO_RG -l $MY_LOCATION --sku Standard_LRS
-export AZURE_STORAGE_KEY=$(az storage account keys list -g $ARO_RG -n $MY_PREFIX-$AZURE_STORAGE_ACCOUNT_ID --query [].value -o tsv | head -1)
+az storage account create -n $MY_PREFIX$AZURE_STORAGE_ACCOUNT_ID -g $ARO_RG -l $MY_LOCATION --sku Standard_LRS
+export AZURE_STORAGE_KEY=$(az storage account keys list -g $ARO_RG -n $MY_PREFIX$AZURE_STORAGE_ACCOUNT_ID --query [].value -o tsv | head -1)
 
 echo '-------Install K10'
 kubectl create ns kasten-io
