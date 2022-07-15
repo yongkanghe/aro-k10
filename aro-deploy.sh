@@ -1,7 +1,7 @@
 echo '-------Creating an ARO Cluster only (typically about 35 mins)'
 starttime=$(date +%s)
 . ./setenv.sh
-MY_PREFIX=$(echo $(whoami) | sed -e 's/\_//g' | sed -e 's/\.//g' | awk '{print tolower($0)}')
+# MY_PREFIX=$(echo $(whoami) | sed -e 's/\_//g' | sed -e 's/\.//g' | awk '{print tolower($0)}')
 
 az group create \
   --name $MY_PREFIX-$MY_GROUP \
