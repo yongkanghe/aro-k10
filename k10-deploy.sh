@@ -13,6 +13,20 @@ ARO_RG=$(az group list -o table | grep rg4yong1 | awk '{print $1}')
 az storage account create -n $MY_PREFIX$AZURE_STORAGE_ACCOUNT_ID -g $ARO_RG -l $MY_LOCATION --sku Standard_LRS
 export AZURE_STORAGE_KEY=$(az storage account keys list -g $ARO_RG -n $MY_PREFIX$AZURE_STORAGE_ACCOUNT_ID --query [].value -o tsv | head -1)
 
+echo '-------Creating a azure disk vsc'
+cat <<EOF | kubectl apply -f -
+apiVersion: snapshot.storage.k8s.io/v1beta1
+kind: VolumeSnapshotClass
+metadata:
+  annotations:
+    k10.kasten.io/is-snapshot-class: "true"
+  name: csi-azuredisk-vsc
+driver: disk.csi.azure.com
+deletionPolicy: Delete
+parameters:
+  incremental: "true"
+EOF
+
 echo '-------Install K10'
 kubectl create ns kasten-io
 helm repo add kasten https://charts.kasten.io
