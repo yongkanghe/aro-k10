@@ -1,26 +1,25 @@
-echo '-------Creating an ARO Cluster only (typically about 35 mins)'
+echo '-------Creating an ARO Cluster only (typically ~35 mins)'
 starttime=$(date +%s)
 . ./setenv.sh
-# MY_PREFIX=$(echo $(whoami) | sed -e 's/\_//g' | sed -e 's/\.//g' | awk '{print tolower($0)}')
 
 az group create \
-  --name $MY_PREFIX-$MY_GROUP \
-  --location $MY_LOCATION
+  --name $ARO_MY_PREFIX-$ARO_MY_GROUP \
+  --location $ARO_MY_LOCATION
 
 az network vnet create \
-  --resource-group $MY_PREFIX-$MY_GROUP \
+  --resource-group $ARO_MY_PREFIX-$ARO_MY_GROUP \
   --name aro-vnet4yong1 \
   --address-prefixes 10.8.0.0/23
 
 az network vnet subnet create \
-  --resource-group $MY_PREFIX-$MY_GROUP \
+  --resource-group $ARO_MY_PREFIX-$ARO_MY_GROUP \
   --vnet-name aro-vnet4yong1 \
   --name master-subnet4yong1 \
   --address-prefixes 10.8.0.0/24 \
   --service-endpoints Microsoft.ContainerRegistry
 
 az network vnet subnet create \
-  --resource-group $MY_PREFIX-$MY_GROUP \
+  --resource-group $ARO_MY_PREFIX-$ARO_MY_GROUP \
   --vnet-name aro-vnet4yong1 \
   --name worker-subnet4yong1 \
   --address-prefixes 10.8.1.0/24 \
@@ -28,24 +27,44 @@ az network vnet subnet create \
 
 az network vnet subnet update \
   --name master-subnet4yong1 \
-  --resource-group $MY_PREFIX-$MY_GROUP \
+  --resource-group $ARO_MY_PREFIX-$ARO_MY_GROUP \
   --vnet-name aro-vnet4yong1 \
   --disable-private-link-service-network-policies true
 
 az aro create \
-  --resource-group $MY_PREFIX-$MY_GROUP \
-  --name $MY_CLUSTER \
+  --resource-group $ARO_MY_PREFIX-$ARO_MY_GROUP \
+  --name $ARO_MY_CLUSTER \
   --vnet aro-vnet4yong1 \
   --master-subnet master-subnet4yong1 \
   --worker-subnet worker-subnet4yong1 \
-  --insecure-skip-tls-verify
-# --pull-secret @pull-secret.txt \
+  --pull-secret @pull-secret.txt
 
-PASSWORD=$(az aro list-credentials --name $MY_CLUSTER --resource-group $MY_PREFIX-$MY_GROUP -o tsv --query kubeadminPassword)
+echo '-------Create a Azure Storage account'
+ARO_RG=$(az group list -o table | grep $ARO_MY_GROUP | awk '{print $1}')
+az storage account create -n $ARO_MY_PREFIX$ARO_AZURE_STORAGE_ACCOUNT_ID -g $ARO_RG -l $ARO_MY_LOCATION --sku Standard_LRS
+echo $(az storage account keys list -g $ARO_RG -n $ARO_MY_PREFIX$ARO_AZURE_STORAGE_ACCOUNT_ID --query [].value -o tsv | head -1) > aro_az_storage_key
 
-apiServer=$(az aro show -g $MY_PREFIX-$MY_GROUP -n $MY_CLUSTER --query apiserverProfile.url -o tsv)
+# oc annotate sc managed-premium storageclass.kubernetes.io/is-default-class-
+# oc annotate sc managed-csi storageclass.kubernetes.io/is-default-class=true
+# oc annotate volumesnapshotclass csi-azuredisk-vsc k10.kasten.io/is-snapshot-class=true
 
-oc login $apiServer -u kubeadmin -p $PASSWORD
+PASSWORD=$(az aro list-credentials --name $ARO_MY_CLUSTER --resource-group $ARO_MY_PREFIX-$ARO_MY_GROUP -o tsv --query kubeadminPassword)
+
+apiServer=$(az aro show -g $ARO_MY_PREFIX-$ARO_MY_GROUP -n $ARO_MY_CLUSTER --query apiserverProfile.url -o tsv)
+
+oc login $apiServer -u kubeadmin -p $PASSWORD --insecure-skip-tls-verify
+echo "" | awk '{print $1}'
+oc get no
+echo "" | awk '{print $1}'
+
+aroui=$(az aro list | grep $ARO_MY_CLUSTER | awk '{print $6}')
+echo -e "\nCopy the password before clicking the link to access OpenShift Web Console" > aro_ui_token
+echo -e "\nThe Username is kubeadmin and the Password is as below" >> aro_ui_token
+echo -e "\n$PASSWORD" >> aro_ui_token
+echo -e "\nThe OpenShift Web Console is as below" >> aro_ui_token
+echo -e "\n$aroui" >> aro_ui_token
+cat aro_ui_token
+echo "" | awk '{print $1}'
 
 endtime=$(date +%s)
 duration=$(( $endtime - $starttime ))
