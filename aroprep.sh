@@ -5,8 +5,14 @@ tar -zxvf openshift-client-linux.tar.gz
 echo 'export PATH=$PATH:~/aro-k10' >> ~/.bashrc && source ~/.bashrc
 rm openshift-client-linux.tar.gz
 
-AZURE_SUBSCRIPTION_ID=$(az account list --query "[?isDefault][id]" --all -o tsv)
-az ad sp create-for-rbac --name https://aks4yong1-k10-app --role Contributor --scopes /subscriptions/$AZURE_SUBSCRIPTION_ID -o json > aks4yong1app
+./createapp.sh
+
+echo -n "Log into Red Hat Cloud Console https://cloud.redhat.com"
+echo -n "Click OpenShift, Click Downloads, Scroll down to the bottom"
+echo -n "Click Copy button under Tokens section, Paste your pull secret and press [ENTER]: "
+read pullsecret
+echo "" | awk '{print $1}'
+echo $pullsecret > pull-secret.txt
 
 clear
 
