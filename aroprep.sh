@@ -2,6 +2,7 @@ echo "-------Install oc client, create an app registration"
 cd ~/aro-k10
 wget https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/openshift-client-linux.tar.gz
 tar -zxvf openshift-client-linux.tar.gz oc
+ln -s oc kubectl
 
 cat ~/.bashrc | grep aro-k10
 if [ `echo $?` -eq 1 ]
