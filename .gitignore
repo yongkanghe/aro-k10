@@ -1,6 +1,8 @@
 *token*
 *secret*
 *yong1app*
-deploy.sh
-destroy.sh
-
+*key*
+kubectl
+oc
+backupname
+exportname
