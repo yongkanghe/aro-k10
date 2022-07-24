@@ -1,31 +1,34 @@
 echo '-------Deploying Kasten K10 and Postgresql'
 starttime=$(date +%s)
 . ./setenv.sh
-MY_PREFIX=$(echo $(whoami) | sed -e 's/\_//g' | sed -e 's/\.//g' | awk '{print tolower($0)}')
+# MY_PREFIX=$(echo $(whoami) | sed -e 's/\_//g' | sed -e 's/\.//g' | awk '{print tolower($0)}')
 
 echo '-------Exporting the Azure Tenant, Client, Secret'
-AZURE_TENANT_ID=$(cat aks4yong1app | grep tenant | awk '{print $2}' | sed -e 's/\"//g')
-AZURE_CLIENT_ID=$(cat aks4yong1app | grep appId | awk '{print $2}' | sed -e 's/\"//g' | sed -e 's/\,//g')
-AZURE_CLIENT_SECRET=$(cat aks4yong1app | grep password | awk '{print $2}' | sed -e 's/\"//g' | sed -e 's/\,//g')
+AZURE_TENANT_ID=$(cat aro4yong1app | grep tenant | awk '{print $2}' | sed -e 's/\"//g')
+AZURE_CLIENT_ID=$(cat aro4yong1app | grep appId | awk '{print $2}' | sed -e 's/\"//g' | sed -e 's/\,//g')
+AZURE_CLIENT_SECRET=$(cat aro4yong1app | grep password | awk '{print $2}' | sed -e 's/\"//g' | sed -e 's/\,//g')
 
-echo '-------Create a Azure Storage account'
-ARO_RG=$(az group list -o table | grep rg4yong1 | awk '{print $1}')
-az storage account create -n $MY_PREFIX$AZURE_STORAGE_ACCOUNT_ID -g $ARO_RG -l $MY_LOCATION --sku Standard_LRS
-export AZURE_STORAGE_KEY=$(az storage account keys list -g $ARO_RG -n $MY_PREFIX$AZURE_STORAGE_ACCOUNT_ID --query [].value -o tsv | head -1)
+# echo '-------Create a Azure Storage account'
+# ARO_RG=$(az group list -o table | grep aro-rg4yong1 | awk '{print $1}')
+# az storage account create -n $ARO_MY_PREFIX$ARO_AZURE_STORAGE_ACCOUNT_ID -g $ARO_RG -l $ARO_MY_LOCATION --sku Standard_LRS
+# export ARO_AZURE_STORAGE_KEY=$(az storage account keys list -g $ARO_RG -n $ARO_MY_PREFIX$ARO_AZURE_STORAGE_ACCOUNT_ID --query [].value -o tsv | head -1)
 
-echo '-------Creating a azure disk vsc'
-cat <<EOF | kubectl apply -f -
-apiVersion: snapshot.storage.k8s.io/v1beta1
-kind: VolumeSnapshotClass
-metadata:
-  annotations:
-    k10.kasten.io/is-snapshot-class: "true"
-  name: csi-azuredisk-vsc
-driver: disk.csi.azure.com
-deletionPolicy: Delete
-parameters:
-  incremental: "true"
-EOF
+echo '-------Set the default sc & vsc'
+oc annotate volumesnapshotclass csi-azuredisk-vsc k10.kasten.io/is-snapshot-class=true
+# cat <<EOF | kubectl apply -f -
+# apiVersion: snapshot.storage.k8s.io/v1
+# kind: VolumeSnapshotClass
+# metadata:
+#   annotations:
+#     k10.kasten.io/is-snapshot-class: "true"
+#   name: csi-azuredisk-vsc
+# driver: disk.csi.azure.com
+# deletionPolicy: Delete
+# parameters:
+#   incremental: "true"
+# EOF
+oc annotate sc managed-premium storageclass.kubernetes.io/is-default-class-
+oc annotate sc managed-csi storageclass.kubernetes.io/is-default-class=true
 
 echo '-------Install K10'
 kubectl create ns kasten-io
@@ -43,8 +46,8 @@ helm install k10 kasten/k10 --namespace=kasten-io \
     --set global.persistence.grafana.size=1Gi \
     --set scc.create=true \
     --set route.enabled=true \
-    --set auth.tokenAuth.enabled=true \
-    --set global.persistence.storageClass=managed-csi
+    --set auth.tokenAuth.enabled=true
+# --set global.persistence.storageClass=managed-csi
 
 echo '-------Set the default ns to k10'
 kubectl config set-context --current --namespace kasten-io
@@ -54,8 +57,8 @@ kubectl create namespace yong-postgresql
 oc adm policy add-scc-to-user anyuid -z default -n yong-postgresql
 helm repo add bitnami https://charts.bitnami.com/bitnami
 helm install --namespace yong-postgresql postgres bitnami/postgresql \
-  --set primary.persistence.size=1Gi \
-  --set persistence.storageClass=managed-csi
+  --set primary.persistence.size=1Gi
+# --set global.storageClass=managed-csi
 
 echo '-------Output the Cluster ID'
 clusterid=$(kubectl get namespace default -ojsonpath="{.metadata.uid}{'\n'}")
@@ -72,13 +75,14 @@ sa_secret=$(kubectl get serviceaccount k10-k10 -o jsonpath="{.secrets[0].name}" 
 echo "Copy/Paste the token below to Signin K10 Web UI" >> aro_token
 echo "" | awk '{print $1}' >> aro_token
 kubectl get secret $sa_secret --namespace kasten-io -ojsonpath="{.data.token}{'\n'}" | base64 --decode | awk '{print $1}' >> aro_token
+# kubectl get secret $sa_secret -n kasten-io -o json | jq '.metadata.annotations."openshift.io/token-secret.value"' | sed -e 's/\"//g' >> aro_token
 echo "" | awk '{print $1}' >> aro_token
 
 echo '-------Waiting for K10 services are up running in about 1 or 2 mins'
 kubectl wait --for=condition=ready --timeout=300s -n kasten-io pod -l component=catalog
 
 #Create a Azure Blob Storage location profile
-./az-location.sh
+./aro-az-location.sh
 
 #Create a Postgresql backup policy
 ./postgresql-policy.sh
