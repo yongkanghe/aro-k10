@@ -6,7 +6,7 @@ tar -zxvf openshift-client-linux.tar.gz oc
 cat ~/.bashrc | grep aro-k10
 if [ `echo $?` -eq 1 ]
 then
-  echo 'export PATH=$PATH:~/ocp-k10/aro-k10' >> ~/.bashrc && source ~/.bashrc
+  echo 'export PATH=$PATH:~/aro-k10' >> ~/.bashrc && source ~/.bashrc
 fi
 
 rm openshift-client-linux.tar.gz
